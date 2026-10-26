@@ -25,8 +25,8 @@
 // up, so it was removed; see the comment on buildAnalyzePrompt below.
 // Both keys now just do plain text generation.)
 // ============================================================================
-const GEMINI_API_KEY = 'AQ.Ab8RN6LXVKuJg5Q1lT2jxusaWp5P9EiI63r-MJNfPOdUenfBJA'; // riot summaries (enrich) + chat
-const GEMINI_ANALYZE_API_KEY = 'AQ.Ab8RN6JxyqGvKUPv-KjBgJ4gaVDqW3FNGeMXDK1tWAswWywEVw'; // Analyze Match only
+const GEMINI_API_KEY = 'primary'; // riot summaries (enrich) + chat
+const GEMINI_ANALYZE_API_KEY = 'analyze'; // Analyze Match only
 const GEMINI_MODEL = 'gemini-3.6-flash';
 
 // Google sometimes answers 503 ("This model is currently experiencing high
