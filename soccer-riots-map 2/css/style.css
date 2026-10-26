@@ -1,0 +1,3006 @@
+/* ==========================================================================
+   CrowdPulse
+   Base design system
+   ========================================================================== */
+
+/* -------------------------------------------------------------------------
+   Custom properties
+   Editorial but no longer monochrome: a genuine two-tone system —
+   warm red-orange primary accent paired with a contrasting deep teal
+   secondary — over a cooler, more designed near-black base. Still
+   restrained rather than playful, since this is a sensitive-subject
+   site, but no longer a single flat dark color throughout.
+   ------------------------------------------------------------------------- */
+:root {
+  /* Color palette */
+  --color-bg: #0a0b10;
+  --color-bg-elevated: #1c202e;
+  --color-border: #2f3547;
+
+  --color-text: #eceef2;
+  --color-text-muted: #9ba0b0;
+  --color-text-faint: #6b7280;
+
+  --color-accent: #bf4a2a;
+  /* Darker than --color-accent so white text on a hover/pressed button
+     background clears 4.5:1 with extra margin. */
+  --color-accent-hover: #9c3a1f;
+  /* Lighter tint for text/thin-indicator use on dark backgrounds — the
+     base --color-accent is meant for backgrounds-with-white-text and
+     borders (only needs 3:1), not body-size text (needs 4.5:1). */
+  --color-accent-text: #f0916c;
+
+  /* Secondary: a deep teal, the other half of the two-tone pairing —
+     used in gradients (avatars, header) and as the "low severity" tier
+     below. Dark enough that white icons/text on top still clear 4.5:1. */
+  --color-secondary: #146e64;
+  --color-secondary-text: #5fd4c4;
+
+  /* Tertiary (warm gold/ochre) and quaternary (deep violet) — added so
+     repeated UI elements (stat-card icons, social links) don't all
+     lean on the same red/teal pairing everywhere, which was reading as
+     flat and same-y. Both checked for white-icon-on-top contrast the
+     same way as the rest of the palette. Tertiary doubles as the
+     general-purpose name for the "medium severity" gold used below. */
+  --color-tertiary: #8f620c;
+  --color-tertiary-text: #dba847;
+  --color-quaternary: #5b3f8f;
+  --color-quaternary-text: #a78bda;
+
+  /* Severity scale reference — teal/gold/red rather than three shades
+     of the same accent color, so map markers and list cards actually
+     communicate intensity. Not consumed directly by any CSS rule below
+     (severity is now a continuous gradient computed in script.js, not
+     three discrete buckets) — these exist as the documented source of
+     truth that the hardcoded hex stops in getSeverityColor() (script.js)
+     are kept in sync with. Each was checked for white-icon-on-top
+     contrast the same way as the accent colors. */
+  --color-severity-low: var(--color-secondary);
+  --color-severity-medium: var(--color-tertiary);
+  --color-severity-high: var(--color-accent-hover);
+
+  --color-overlay: rgba(8, 9, 13, 0.75);
+
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  /* Space Grotesk (loaded in index.html) for compact UI text — nav,
+     module titles, labels. */
+  --font-heading: "Space Grotesk", var(--font-sans);
+  /* Fraunces — a characterful serif reserved for big editorial
+     headlines (riot titles, page headings) so the site has genuine
+     typographic hierarchy instead of one font used everywhere. */
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+
+  --font-size-base: 1rem;       /* 16px */
+  --font-size-sm: 0.875rem;     /* 14px */
+  --font-size-lg: 1.125rem;     /* 18px */
+  --font-size-h1: 2.25rem;      /* 36px, was 28px */
+  --font-size-h2: 1.75rem;      /* 28px, was 22px */
+  --font-size-h3: 1.25rem;      /* 20px, was 18px */
+
+  --line-height-base: 1.6;
+  --line-height-heading: 1.2;
+
+  /* Layout */
+  --header-height: 3.5rem;
+  --content-max-width: 1100px;
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2.5rem;
+  --space-xl: 4rem;
+}
+
+/* -------------------------------------------------------------------------
+   Reset
+   ------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+}
+
+/* Visible focus indicator on every interactive element. Specific
+   components may layer additional focus styling (border/color changes)
+   on top of this; this rule is the guaranteed baseline. */
+:focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: 2px;
+}
+
+/* Visually hides content while keeping it available to screen readers —
+   used for labels that don't need a visible on-screen counterpart
+   (e.g. the chat input's label, since its placeholder already shows
+   visually but isn't a reliable accessible label on its own). */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* -------------------------------------------------------------------------
+   Base typography / body
+   ------------------------------------------------------------------------- */
+body {
+  position: relative;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sitewide atmosphere — four large, bold color blobs anchored near the
+   viewport corners, fixed so they stay put while scrolling. This is
+   deliberately NOT confined to the header or a single hero area: on a
+   wide screen, the empty gutters on either side of the centered content
+   column are exactly where these show, which is the actual fix for a
+   page that otherwise goes flat-black the moment you're not looking at
+   a card. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(circle at 4% 8%, color-mix(in srgb, var(--color-accent) 40%, transparent) 0%, transparent 42%),
+    radial-gradient(circle at 96% 14%, color-mix(in srgb, var(--color-secondary) 38%, transparent) 0%, transparent 44%),
+    radial-gradient(circle at 6% 86%, color-mix(in srgb, var(--color-tertiary) 34%, transparent) 0%, transparent 40%),
+    radial-gradient(circle at 94% 92%, color-mix(in srgb, var(--color-quaternary) 36%, transparent) 0%, transparent 42%),
+    radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--color-secondary) 10%, transparent) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* A scattering of small decorative dots near the margins, plus a very
+   fine grain texture over the whole page — the kind of small hand-
+   placed detail that makes a page read as designed rather than a flat
+   generated template. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.28) 2px, transparent 2px) 4% 14% / 6px 6px no-repeat,
+    radial-gradient(circle, rgba(255, 255, 255, 0.22) 2px, transparent 2px) 96% 24% / 6px 6px no-repeat,
+    radial-gradient(circle, rgba(255, 255, 255, 0.24) 2px, transparent 2px) 3% 58% / 6px 6px no-repeat,
+    radial-gradient(circle, rgba(255, 255, 255, 0.26) 2px, transparent 2px) 97% 68% / 6px 6px no-repeat,
+    radial-gradient(circle, rgba(255, 255, 255, 0.2) 2px, transparent 2px) 5% 90% / 6px 6px no-repeat,
+    radial-gradient(circle, rgba(255, 255, 255, 0.2) 2px, transparent 2px) 92% 6% / 6px 6px no-repeat,
+    radial-gradient(circle, rgba(255, 255, 255, 0.18) 2px, transparent 2px) 8% 40% / 6px 6px no-repeat,
+    radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px) 0 0 / 4px 4px;
+  pointer-events: none;
+}
+
+/* Dashed constellation lines connecting a few of the margin dots above
+   — an explicit nod to the "orbit/connection line" decoration used
+   throughout the reference designs, rendered as thin SVG strokes so
+   they scale cleanly. Fixed, full-viewport, and entirely decorative
+   (no content, not in the accessibility tree). */
+.decorative-constellation {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  line-height: var(--line-height-heading);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+}
+
+h3 {
+  font-size: var(--font-size-h3);
+}
+
+p {
+  color: var(--color-text-muted);
+}
+
+/* -------------------------------------------------------------------------
+   Header / nav
+   Sticky top bar. Anchor-link scrolling is smoothed via `scroll-behavior`
+   on the html element above.
+   ------------------------------------------------------------------------- */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  height: var(--header-height);
+  padding: 0 var(--space-md);
+  /* Two-tone gradient — a hint of the primary accent on the left fading
+     through the base elevated color to a hint of the secondary teal on
+     the right, rather than the flat single color every card also uses. */
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--color-accent) 20%, var(--color-bg-elevated)) 0%,
+    var(--color-bg-elevated) 55%,
+    color-mix(in srgb, var(--color-secondary) 18%, var(--color-bg-elevated)) 100%
+  );
+  box-shadow: 0 4px 20px -6px rgba(0, 0, 0, 0.45);
+}
+
+/* Soft glow blob for a bit of atmosphere — subtle, not a spotlight. */
+header::before {
+  content: "";
+  position: absolute;
+  top: -70%;
+  right: -4%;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-secondary) 35%, transparent) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Gradient underline strip, replacing a flat border-bottom. */
+header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-tertiary), var(--color-secondary));
+}
+
+#site-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+#site-logo-mark {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
+  color: #fff;
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.5);
+}
+
+#site-logo-mark svg {
+  width: 18px;
+  height: 18px;
+}
+
+header h1 {
+  font-size: var(--font-size-lg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Gradient text, with a solid fallback color first for browsers that
+     don't support background-clip: text. */
+  color: var(--color-text);
+  background: linear-gradient(100deg, var(--color-text) 30%, var(--color-secondary-text) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+header nav {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.nav-link {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--color-text-muted);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 999px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.nav-link:hover,
+.nav-link:focus-visible {
+  color: var(--color-text);
+  background-color: rgba(255, 255, 255, 0.07);
+}
+
+/* The current page's nav link, set via aria-current="page" in
+   script.js — a translucent two-tone pill, distinct from the plain
+   hover state above. */
+.nav-link[aria-current="page"] {
+  color: var(--color-text);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-accent) 32%, transparent),
+    color-mix(in srgb, var(--color-secondary) 26%, transparent)
+  );
+}
+
+/* -------------------------------------------------------------------------
+   Main / sections
+   Two client-side "pages" (#map-section, #contact-section) share this
+   one HTML file. Only one is ever visible — script.js toggles
+   .is-active based on the "Map"/"Contact" nav links, so switching pages
+   never means scrolling past one to reach the other.
+   ------------------------------------------------------------------------- */
+main {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+}
+
+.app-page {
+  display: none;
+}
+
+.app-page.is-active {
+  display: block;
+}
+
+#map-section {
+  padding-bottom: var(--space-xl);
+}
+
+/* -------------------------------------------------------------------------
+   Analyze Match page
+   ------------------------------------------------------------------------- */
+#analyze-section {
+  padding: var(--space-xl) var(--space-md);
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+}
+
+.analyze-intro,
+.analyze-disclaimer,
+.analyze-form {
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.analyze-intro {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+/* Soft ambient glow, purely decorative, echoing the header's glow blob
+   but in the violet accent for variety. */
+.analyze-intro::before {
+  content: "";
+  position: absolute;
+  top: -50px;
+  left: -50px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-quaternary) 28%, transparent) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* A small rotated color chip near the icon — a light nod to the tiny
+   rotated color-swatch decorations common in more illustrated,
+   hand-crafted layouts, kept subtle here given the subject matter. */
+.analyze-intro::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 50px;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--color-tertiary), var(--color-accent));
+  transform: rotate(18deg);
+  box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.analyze-intro .riot-window-icon {
+  margin-top: 4px;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-quaternary));
+}
+
+.analyze-intro h2 {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 600;
+}
+
+.analyze-subtitle {
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-secondary-text);
+}
+
+.analyze-description {
+  margin-top: var(--space-sm);
+  line-height: var(--line-height-base);
+}
+
+.analyze-disclaimer {
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-lg);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent-text);
+  border-radius: 6px;
+}
+
+/* Form card — same card language as .riot-window (bg-elevated, border,
+   radius, shadow) so it reads as part of the same design system. */
+.analyze-form {
+  padding: var(--space-lg);
+  background: linear-gradient(155deg, color-mix(in srgb, var(--color-bg-elevated) 92%, var(--color-accent)) 0%, var(--color-bg-elevated) 50%);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px -20px rgba(191, 74, 42, 0.3);
+}
+
+.analyze-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0 0 var(--space-lg);
+}
+
+.analyze-fieldset legend {
+  padding: 0 0 var(--space-sm);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.analyze-field {
+  margin-bottom: var(--space-md);
+}
+
+.analyze-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.analyze-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.analyze-optional {
+  font-weight: 400;
+  color: var(--color-text-faint);
+}
+
+.analyze-field input[type="text"],
+.analyze-field select,
+.analyze-field textarea {
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  transition: border-color 0.15s ease;
+}
+
+.analyze-field textarea {
+  resize: vertical;
+  min-height: 4.5em;
+}
+
+.analyze-field input[type="text"]:focus-visible,
+.analyze-field select:focus-visible,
+.analyze-field textarea:focus-visible {
+  border-color: var(--color-accent-text);
+}
+
+.analyze-checkbox-group {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm) var(--space-md);
+}
+
+.analyze-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.analyze-checkbox input {
+  margin-top: 3px;
+  accent-color: var(--color-accent);
+}
+
+.analyze-form-warning {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent-text);
+  margin-bottom: var(--space-md);
+}
+
+#analyze-submit {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
+  border-radius: 999px;
+  box-shadow: 0 8px 20px -8px rgba(191, 74, 42, 0.5);
+  transition: box-shadow 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+
+#analyze-submit:hover:not(:disabled),
+#analyze-submit:focus-visible:not(:disabled) {
+  box-shadow: 0 10px 24px -6px rgba(191, 74, 42, 0.7);
+  transform: translateY(-1px);
+}
+
+#analyze-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Loading/error states appear in place of the dashboard before it's
+   built, or if the request fails — kept as a simple centered card
+   rather than the full grid. */
+.analyze-result-status {
+  margin-top: var(--space-lg);
+  padding: var(--space-lg);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px -20px rgba(20, 110, 100, 0.35);
+  animation: riot-window-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .analyze-result-status {
+    animation: none;
+  }
+}
+
+.analyze-loading-text {
+  color: var(--color-text-muted);
+  animation: riot-pulse 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .analyze-loading-text {
+    animation: none;
+  }
+}
+
+.analyze-result-error {
+  color: var(--color-accent-text);
+}
+
+/* -------------------------------------------------------------------------
+   Analyze Match — results dashboard
+   Built fresh per matchup/questionnaire, so every module below is
+   populated dynamically from script.js rather than being static markup.
+   ------------------------------------------------------------------------- */
+.analyze-dashboard {
+  margin-top: var(--space-lg);
+  animation: riot-window-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .analyze-dashboard {
+    animation: none;
+  }
+}
+
+.analyze-dashboard-header {
+  margin-bottom: var(--space-md);
+}
+
+.analyze-dashboard-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.analyze-dashboard-subtitle {
+  margin-top: 2px;
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.analyze-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+}
+
+.analyze-module {
+  min-width: 0;
+  padding: var(--space-md);
+  background: linear-gradient(155deg, color-mix(in srgb, var(--color-bg-elevated) 93%, var(--color-secondary)) 0%, var(--color-bg-elevated) 55%);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-accent);
+  border-radius: 16px;
+  box-shadow: 0 12px 28px -18px rgba(0, 0, 0, 0.5);
+}
+
+/* Top border matches each module's tone, same colors as its title. */
+.analyze-module--tone-teal {
+  border-top-color: var(--color-secondary);
+}
+
+.analyze-module--tone-gold {
+  border-top-color: var(--color-tertiary);
+}
+
+.analyze-module--tone-violet {
+  border-top-color: var(--color-quaternary);
+}
+
+.analyze-module--span-2 {
+  grid-column: span 2;
+}
+
+.analyze-module--span-4 {
+  grid-column: span 4;
+}
+
+.analyze-module-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-accent-text);
+  margin-bottom: var(--space-sm);
+}
+
+/* Tone variants — so module headers aren't all the same accent color.
+   Applied via a modifier class on .analyze-module from script.js,
+   matching each module's own icon color where one exists. */
+.analyze-module--tone-teal .analyze-module-title {
+  color: var(--color-secondary-text);
+}
+
+.analyze-module--tone-gold .analyze-module-title {
+  color: var(--color-tertiary-text);
+}
+
+.analyze-module--tone-violet .analyze-module-title {
+  color: var(--color-quaternary-text);
+}
+
+/* Small stat cards (top row) */
+.analyze-stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  margin-bottom: var(--space-sm);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
+  color: #fff;
+}
+
+/* Each stat card gets its own hue rather than repeating the same
+   gradient 4 times — the four cards are always appended in this order
+   (likelihood, severity, risk, profile), so nth-child position is
+   reliable here. */
+.analyze-grid > .analyze-module:nth-child(1) .analyze-stat-icon {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+}
+
+.analyze-grid > .analyze-module:nth-child(2) .analyze-stat-icon {
+  background: linear-gradient(135deg, var(--color-tertiary), #6b4a08);
+}
+
+.analyze-grid > .analyze-module:nth-child(3) .analyze-stat-icon {
+  background: linear-gradient(135deg, var(--color-secondary), #0d4a43);
+}
+
+.analyze-grid > .analyze-module:nth-child(4) .analyze-stat-icon {
+  background: linear-gradient(135deg, var(--color-quaternary), #3f2a66);
+}
+
+.analyze-grid > .analyze-module:nth-child(2) {
+  border-top-color: var(--color-tertiary);
+}
+
+.analyze-grid > .analyze-module:nth-child(3) {
+  border-top-color: var(--color-secondary);
+}
+
+.analyze-grid > .analyze-module:nth-child(4) {
+  border-top-color: var(--color-quaternary);
+}
+
+.analyze-stat-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.analyze-stat-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.analyze-stat-value {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-h2);
+  font-weight: 700;
+}
+
+.analyze-stat-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.analyze-badge {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 3px 10px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  border-radius: 999px;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+/* Gauge module — a circular progress ring (SVG, stroke-dasharray) with
+   the score in the center, colored by the same severity gradient used
+   on the map/list. */
+.analyze-gauge-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.analyze-gauge-svg {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.analyze-gauge-track {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 10;
+}
+
+.analyze-gauge-value {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease;
+}
+
+.analyze-gauge-number {
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.analyze-gauge-caption {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* Risk factor checklist */
+.analyze-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.analyze-checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-sm);
+}
+
+.analyze-checklist-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.analyze-checklist-icon svg {
+  width: 11px;
+  height: 11px;
+}
+
+.analyze-checklist-item.is-present .analyze-checklist-icon {
+  background-color: var(--color-accent);
+  color: #fff;
+}
+
+.analyze-checklist-item.is-present {
+  color: var(--color-text);
+}
+
+.analyze-checklist-item:not(.is-present) .analyze-checklist-icon {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-faint);
+}
+
+.analyze-checklist-item:not(.is-present) {
+  color: var(--color-text-faint);
+}
+
+/* Stadium mini-map module */
+.analyze-map-module {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.analyze-map-module .analyze-module-title {
+  padding: var(--space-md) var(--space-md) 0;
+}
+
+.analyze-map-container {
+  width: 100%;
+  height: 160px;
+  background-color: var(--color-bg);
+}
+
+.analyze-map-caption {
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* Keep required OSM attribution, but sized to not overwhelm a small
+   dashboard card. */
+.analyze-map-container .leaflet-control-attribution {
+  font-size: 9px;
+  padding: 1px 4px;
+}
+
+/* Match details recap module */
+.analyze-details-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px var(--space-sm);
+}
+
+.analyze-details-list dt {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-secondary-text);
+}
+
+.analyze-details-list dd {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.analyze-map-status {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: var(--space-md);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* Text module (reasoning is the only module that uses this — a
+   paragraph) */
+.analyze-module-body {
+  line-height: var(--line-height-base);
+  color: var(--color-text);
+}
+
+/* Icon-row list modules (historical data points / mitigation /
+   intangible factors) — short scannable rows instead of prose or plain
+   bullets. */
+.analyze-icon-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.analyze-icon-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  line-height: var(--line-height-base);
+}
+
+.analyze-icon-list-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-accent-text);
+}
+
+.analyze-icon-list-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Bar charts (risk profile, identified risk factors) — a shared row
+   pattern: label, filled track, numeric value, colored via the same
+   severity gradient used across the map/list/gauge. */
+.analyze-bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.analyze-bar-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 180px) 1fr auto;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.analyze-bar-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.analyze-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background-color: var(--color-bg);
+  overflow: hidden;
+}
+
+.analyze-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+
+.analyze-bar-value {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  min-width: 2.5em;
+  text-align: right;
+}
+
+/* -------------------------------------------------------------------------
+   Mitigation Factors page
+   ------------------------------------------------------------------------- */
+#mitigation-section {
+  padding: var(--space-xl) var(--space-md);
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+}
+
+.mitigation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-lg);
+  margin-top: var(--space-lg);
+}
+
+.mitigation-module {
+  padding: var(--space-lg);
+  background: linear-gradient(155deg, color-mix(in srgb, var(--color-bg-elevated) 93%, var(--color-secondary)) 0%, var(--color-bg-elevated) 55%);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-secondary);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px -20px rgba(20, 110, 100, 0.3);
+}
+
+/* Response module deliberately breaks from the prevention module's
+   teal (calm, proactive) to the site's accent red (urgent, reactive) —
+   a color choice that carries meaning, not just variety. */
+.mitigation-module--response {
+  background: linear-gradient(155deg, color-mix(in srgb, var(--color-bg-elevated) 93%, var(--color-accent)) 0%, var(--color-bg-elevated) 55%);
+  border-top-color: var(--color-accent);
+  box-shadow: 0 24px 48px -20px rgba(191, 74, 42, 0.3);
+}
+
+.mitigation-module-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-md);
+  margin-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mitigation-module-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-quaternary));
+  color: #fff;
+}
+
+.mitigation-module--response .mitigation-module-icon {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+}
+
+.mitigation-module-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.mitigation-module-header h3 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.mitigation-module-subtitle {
+  margin-top: 2px;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-secondary-text);
+}
+
+.mitigation-module--response .mitigation-module-subtitle {
+  color: var(--color-accent-text);
+}
+
+.mitigation-category {
+  margin-bottom: var(--space-md);
+}
+
+.mitigation-category:last-child {
+  margin-bottom: 0;
+}
+
+.mitigation-category-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+}
+
+.mitigation-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mitigation-list li {
+  position: relative;
+  padding-left: var(--space-md);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  color: var(--color-text-muted);
+}
+
+.mitigation-list li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-secondary-text);
+}
+
+.mitigation-module--response .mitigation-list li::before {
+  background-color: var(--color-accent-text);
+}
+
+/* -------------------------------------------------------------------------
+   About/Contact page
+   ------------------------------------------------------------------------- */
+#contact-section {
+  padding: var(--space-xl) var(--space-md);
+}
+
+.about-panel {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-xl);
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+}
+
+/* Decorative panel standing in for a photo (see the HTML comment) — a
+   gradient block with the site's own icon, large and slightly rotated
+   for visual interest, similar in spirit to a portrait crop. */
+.about-photo {
+  position: relative;
+  flex: 0 0 clamp(220px, 32vw, 360px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: linear-gradient(160deg, var(--color-accent) 0%, var(--color-bg) 45%, var(--color-secondary) 100%);
+  box-shadow: 0 24px 48px -20px rgba(191, 74, 42, 0.45);
+  overflow: hidden;
+}
+
+/* Subtle grain texture — a cheap dot-pattern overlay, no image asset —
+   so the gradient panel reads as a little more tactile/hand-finished
+   rather than a perfectly flat digital gradient. */
+.about-photo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 3px 3px;
+  pointer-events: none;
+}
+
+/* A second, smaller glow in the tertiary gold — a bit of extra color
+   richness beyond the base two-tone gradient. */
+.about-photo::after {
+  content: "";
+  position: absolute;
+  bottom: -20%;
+  left: -10%;
+  width: 55%;
+  height: 55%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-tertiary) 55%, transparent) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.about-photo img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.about-photo svg {
+  position: relative;
+  z-index: 1;
+  width: 40%;
+  height: 40%;
+  color: rgba(255, 255, 255, 0.85);
+  transform: rotate(-8deg);
+}
+
+.about-content {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* A small rotated color chip, mirroring the one on the Analyze Match
+   page but in a different hue pairing for variety. */
+.about-content::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-quaternary));
+  transform: rotate(-15deg);
+  box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+#contact-section h2 {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.about-subtitle {
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-accent-text);
+}
+
+.about-bio {
+  max-width: 56ch;
+  margin-top: var(--space-md);
+  line-height: var(--line-height-base);
+}
+
+.social-icons {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  list-style: none;
+}
+
+.social-icons a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+}
+
+.social-icons svg {
+  width: 20px;
+  height: 20px;
+}
+
+.social-icons a:hover,
+.social-icons a:focus-visible {
+  color: var(--color-text);
+  border-color: var(--color-accent-text);
+  background-color: color-mix(in srgb, var(--color-bg-elevated) 85%, var(--color-accent));
+  box-shadow: 0 8px 18px -8px rgba(191, 74, 42, 0.5);
+  transform: translateY(-2px);
+}
+
+/* Each icon gets its own accent color on hover, rather than every link
+   hovering to the same shade — matches the HTML order (GitHub, Email,
+   LinkedIn, Instagram). */
+.social-icons li:nth-child(1) a:hover,
+.social-icons li:nth-child(1) a:focus-visible {
+  border-color: var(--color-quaternary-text);
+  background-color: color-mix(in srgb, var(--color-bg-elevated) 85%, var(--color-quaternary));
+  box-shadow: 0 8px 18px -8px rgba(91, 63, 143, 0.5);
+}
+
+.social-icons li:nth-child(3) a:hover,
+.social-icons li:nth-child(3) a:focus-visible {
+  border-color: var(--color-secondary-text);
+  background-color: color-mix(in srgb, var(--color-bg-elevated) 85%, var(--color-secondary));
+  box-shadow: 0 8px 18px -8px rgba(20, 110, 100, 0.5);
+}
+
+.social-icons li:nth-child(4) a:hover,
+.social-icons li:nth-child(4) a:focus-visible {
+  border-color: var(--color-tertiary-text);
+  background-color: color-mix(in srgb, var(--color-bg-elevated) 85%, var(--color-tertiary));
+  box-shadow: 0 8px 18px -8px rgba(143, 98, 12, 0.5);
+}
+
+/* -------------------------------------------------------------------------
+   Map container
+   CRITICAL: Leaflet needs an explicit height on its container, or the
+   map renders blank/broken. width: 100% keeps it fluid within the layout.
+   ------------------------------------------------------------------------- */
+#map-container-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px -16px rgba(20, 110, 100, 0.4);
+  /* Establishes a stacking context so Leaflet's internal panes (tiles,
+     markers, tooltips, popups — Leaflet uses z-index values up to 700
+     internally) are contained within this element and can never render
+     above the riot modal, which lives in a later stacking context at
+     the document root (see #riot-modal below). */
+  z-index: 0;
+}
+
+#map-container {
+  width: 100%;
+  height: 70vh;
+  min-height: 400px;
+  background-color: var(--color-bg-elevated);
+}
+
+/* Loading overlay — shown over the map while data/riots.json is being
+   fetched. The map itself is already visible underneath (it doesn't
+   depend on this fetch), so this only needs to cover enough to signal
+   that markers are still on the way, not block map interaction. */
+#map-loading {
+  position: absolute;
+  top: var(--space-md);
+  left: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  background-color: var(--color-overlay);
+  border-radius: 6px;
+  z-index: 10;
+}
+
+#map-loading[hidden] {
+  display: none;
+}
+
+.map-loading-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-text-faint);
+  border-top-color: var(--color-text);
+  border-radius: 50%;
+  animation: map-spinner-rotate 0.7s linear infinite;
+}
+
+@keyframes map-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-loading-spinner {
+    animation: none;
+  }
+}
+
+/* Error state — replaces the loading indicator if the riots.json fetch
+   fails, rather than leaving it stuck loading forever. */
+#map-error {
+  position: absolute;
+  top: var(--space-md);
+  left: var(--space-md);
+  right: var(--space-md);
+  padding: var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-accent-text);
+  border-radius: 6px;
+  z-index: 10;
+}
+
+#map-error[hidden] {
+  display: none;
+}
+
+/* Custom marker badge, replacing Leaflet's default blue pin — a
+   teardrop shape (the classic CSS trick: a rounded square with one
+   square corner, rotated 45°) holding the shared riot glyph. Color
+   shades continuously by severity, applied as an inline style from
+   getSeverityColor() in script.js (a 1-5 gradient, not discrete
+   tiers). Leaflet's own divIcon default styling (a white box with a
+   border) is overridden on .riot-marker-icon since style.css loads
+   after leaflet.css. */
+.riot-marker-icon {
+  background: transparent;
+  border: none;
+}
+
+.riot-marker-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background-color: var(--color-accent);
+  border: 2px solid var(--color-bg-elevated);
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.riot-marker-badge svg {
+  width: 14px;
+  height: 14px;
+  color: #fff;
+  /* Counter-rotate the icon so it stays upright inside the rotated
+     teardrop. */
+  transform: rotate(45deg);
+}
+
+.leaflet-marker-icon:hover .riot-marker-badge,
+.leaflet-marker-icon:focus .riot-marker-badge {
+  transform: rotate(-45deg) scale(1.15);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .riot-marker-badge {
+    transition: none;
+  }
+}
+
+/* Accessible list-based alternative to the map markers. See the
+   comment in index.html: Leaflet markers aren't reliably keyboard- or
+   screen-reader-accessible, so this list is the non-map way to reach
+   every riot's detail popup. */
+#riot-list-section {
+  margin-top: var(--space-md);
+}
+
+#riot-list-section h2 {
+  font-size: var(--font-size-h3);
+  margin-bottom: var(--space-xs);
+}
+
+.riot-list-note {
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-sm);
+}
+
+/* A responsive card grid rather than a single wrapped row — makes
+   better use of the width under the map and gives each entry room for
+   its location/date/severity info. Scrolls internally past a certain
+   height rather than growing the page indefinitely as more riots are
+   added. */
+#riot-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-sm);
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.riot-list-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  text-align: left;
+  color: var(--color-text);
+  background: linear-gradient(155deg, color-mix(in srgb, var(--color-bg-elevated) 94%, var(--color-secondary)) 0%, var(--color-bg-elevated) 60%);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.riot-list-item:hover,
+.riot-list-item:focus-visible {
+  border-color: var(--color-accent-text);
+  background: linear-gradient(155deg, color-mix(in srgb, var(--color-bg-elevated) 80%, var(--color-accent)) 0%, var(--color-bg-elevated) 60%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -8px rgba(191, 74, 42, 0.45);
+}
+
+/* Icon chip — same riot glyph as the map markers, so the list and map
+   read as one visual system. */
+.riot-list-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--color-accent);
+  color: #fff;
+}
+
+.riot-list-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.riot-list-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.riot-list-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.riot-list-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Severity dots — n of 5 filled, a quick-glance intensity read without
+   needing to open the popup. */
+.riot-list-severity {
+  flex-shrink: 0;
+  display: flex;
+  gap: 3px;
+}
+
+.riot-severity-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-border);
+}
+
+.riot-severity-dot.is-filled {
+  background-color: var(--color-accent-text);
+}
+
+/* -------------------------------------------------------------------------
+   Riot popup — two separate floating windows
+   Hidden by default (display: none). JS toggles the `is-open` class on
+   #riot-modal to show it, and adds `body-scroll-locked` to <body> to
+   prevent the page behind the modal from scrolling.
+   ------------------------------------------------------------------------- */
+#riot-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  /* Comfortably above Leaflet's own internal panes (which use z-index
+     values up to 700), and above the map-container-wrapper's stacking
+     context (z-index: 0) that contains them. */
+  z-index: 1000;
+}
+
+#riot-modal.is-open {
+  display: block;
+}
+
+body.body-scroll-locked {
+  overflow: hidden;
+}
+
+/* Backdrop — transparent, so the map stays visible in the gap between
+   the two windows below. Still fills the viewport and still catches
+   clicks outside either window to close the popup. */
+#riot-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: transparent;
+}
+
+/* Non-visual positioning wrapper for the two floating windows. Has no
+   box styling of its own — it just lays the two .riot-window children
+   out at opposite edges, with the gap between them (and the map behind
+   it) left open. pointer-events: none here lets clicks in that gap
+   fall through to the backdrop (closing the popup) rather than being
+   swallowed by an invisible full-viewport element. */
+#riot-modal-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  height: 100%;
+  padding: var(--space-lg);
+  pointer-events: none;
+}
+
+/* Shared floating-window card style, used by both #riot-details-panel
+   and #riot-chat-panel.
+   min-width: 0 + overflow-wrap: anywhere fix a real overlap bug: flex
+   items default to min-width: auto, which lets a long unbroken string
+   anywhere inside (a long riot title, team name, sanction description,
+   source URL...) force the box wider than its explicit `width` and
+   push the two windows into each other. overflow-wrap is an inherited
+   property, so setting it here covers every descendant text element in
+   one place. */
+.riot-window {
+  position: relative;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-height: 85vh;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  background: linear-gradient(155deg, color-mix(in srgb, var(--color-bg-elevated) 92%, var(--color-accent)) 0%, var(--color-bg-elevated) 45%, color-mix(in srgb, var(--color-bg-elevated) 94%, var(--color-secondary)) 100%);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-accent);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px -14px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.2);
+  color: var(--color-text);
+  animation: riot-window-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Each window's shadow leans toward its own color in the two-tone
+   pairing — details toward the accent, chat toward the secondary. */
+#riot-details-panel {
+  box-shadow: 0 24px 48px -14px rgba(191, 74, 42, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+#riot-chat-panel {
+  border-top-color: var(--color-secondary);
+  box-shadow: 0 24px 48px -14px rgba(20, 110, 100, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+/* clamp() keeps both windows a sensible size across a wide range of
+   viewport widths, with a floor low enough that — combined with the
+   min-width fix above — they never collide before the mobile
+   breakpoint stacks them instead. */
+#riot-details-panel {
+  width: clamp(260px, 36vw, 480px);
+}
+
+#riot-chat-panel {
+  width: clamp(240px, 28vw, 380px);
+}
+
+@keyframes riot-window-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .riot-window {
+    animation: none;
+  }
+}
+
+/* Close button is now a normal flex-row child inside .riot-window-header
+   (not absolutely positioned over content), so it can never visually
+   collide with the title regardless of how long the title is or how
+   many lines it wraps to. */
+.riot-window-close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  border-radius: 50%;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.riot-window-close:hover,
+.riot-window-close:focus-visible {
+  color: var(--color-text);
+  background-color: var(--color-border);
+}
+
+/* Shared header bar for both windows: icon + title/subtitle + close.
+   Sits as a non-scrolling flex sibling above .riot-window-body (not
+   sticky — it doesn't need to be, since it's simply outside the
+   scrollable region entirely, which also means it stays correctly
+   pinned to its own window rather than risking sticking to the wrong
+   scroll ancestor on mobile's stacked layout). Opaque background so
+   nothing can ever show through it. */
+.riot-window-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  background-color: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.riot-window-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
+  color: #fff;
+}
+
+.riot-window-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.riot-window-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.riot-window-title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: var(--line-height-heading);
+}
+
+/* The actual riot title specifically (not the chat panel's "Ask AI"
+   label, which shares .riot-window-title above) — a serif headline for
+   editorial weight over each documented event. */
+#riot-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.riot-window-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.riot-window-subtitle:empty {
+  display: none;
+}
+
+.riot-chat-status-dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: #5fbf77;
+}
+
+/* THE single scroll container in each window — everything below the
+   sticky header lives here. Having exactly one clearly-defined scroll
+   region per window (rather than the window itself plus an inconsistent
+   mix of mobile-only overrides) is what actually fixes not being able
+   to reach the bottom of the content. */
+.riot-window-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: var(--space-lg);
+}
+
+/* Body copy for the AI-fetched summary — the primary (and now, only)
+   reading content in the details panel. */
+#riot-info-content {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+/* Loading state — subtle pulse while AI content is pending */
+#riot-info-content.is-loading {
+  animation: riot-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes riot-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #riot-info-content.is-loading {
+    animation: none;
+  }
+}
+
+/* Section labels (Summary/Description/Causes/Impact) and their body
+   text within #riot-info-content — matches the uppercase-label pattern
+   used for module titles elsewhere on the site. */
+.riot-info-label {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-accent-text);
+  margin-top: var(--space-md);
+  margin-bottom: var(--space-xs);
+}
+
+.riot-info-label:first-child {
+  margin-top: 0;
+}
+
+.riot-info-body {
+  color: var(--color-text-muted);
+  line-height: var(--line-height-base);
+}
+
+#riot-sources {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--font-size-sm);
+}
+
+#riot-sources:empty {
+  display: none;
+}
+
+#riot-sources a {
+  color: var(--color-accent-text);
+  text-decoration: none;
+}
+
+#riot-sources a:hover,
+#riot-sources a:focus-visible {
+  text-decoration: underline;
+}
+
+/* #riot-chat-container carries the shared .riot-window-body class (see
+   above) for its scroll/layout behavior — nothing chat-specific needed
+   here beyond typography defaults. */
+#riot-chat-container {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* Messages flow directly in .riot-window-body's own scroll region — no
+   separate nested scroll container, so there's only ever one scrollbar
+   to reason about. #chat-input-row (below) sticks to the bottom of
+   this same region. */
+#chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* Each message is a row: a small avatar plus the bubble, so it's
+   immediately clear who's speaking without re-reading the text. */
+.chat-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-xs);
+}
+
+.chat-row-user {
+  justify-content: flex-end;
+}
+
+.chat-row-assistant,
+.chat-row-error {
+  justify-content: flex-start;
+}
+
+.chat-avatar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.chat-avatar svg {
+  width: 14px;
+  height: 14px;
+}
+
+.chat-avatar-assistant {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-accent-text);
+}
+
+.chat-avatar-user {
+  background-color: var(--color-accent);
+  color: #fff;
+}
+
+.chat-avatar-error {
+  background-color: rgba(181, 67, 44, 0.18);
+  color: var(--color-accent-text);
+}
+
+/* Base bubble */
+.chat-message {
+  max-width: 78%;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 14px;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.chat-message-user {
+  background-color: var(--color-accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-message-assistant {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-bottom-left-radius: 4px;
+}
+
+.chat-message-error {
+  background-color: rgba(181, 67, 44, 0.12);
+  border: 1px solid var(--color-accent-text);
+  color: var(--color-text);
+  border-bottom-left-radius: 4px;
+}
+
+/* Typing indicator — three pulsing dots, its own distinct bubble style */
+.chat-message-typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-sm);
+}
+
+.chat-typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-text-faint);
+  animation: chat-typing-pulse 1.2s ease-in-out infinite;
+}
+
+.chat-typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.chat-typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes chat-typing-pulse {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-typing-dot {
+    animation: none;
+  }
+}
+
+/* Input row — pill-shaped, with an icon-only circular send button
+   (matches the compact, icon-driven input pattern of modern chat
+   widgets) rather than a text "Send" button. Sticky to the bottom of
+   .riot-window-body (its scrolling ancestor) so it stays reachable
+   regardless of how many messages have accumulated. It already spans
+   the full content width as a flex-column child, so its own background
+   is enough to mask messages scrolling up behind it — no extra
+   full-bleed wrapper needed. */
+#chat-input-row {
+  position: sticky;
+  bottom: 0;
+  flex-shrink: 0;
+  margin-top: var(--space-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 6px 6px 6px var(--space-md);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  transition: border-color 0.15s ease;
+}
+
+#chat-input-row:focus-within {
+  border-color: var(--color-accent-text);
+}
+
+#chat-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  color: var(--color-text);
+  background-color: transparent;
+  border: none;
+}
+
+#chat-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#chat-send {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
+  box-shadow: 0 4px 12px -4px rgba(191, 74, 42, 0.5);
+  border-radius: 50%;
+  transition: box-shadow 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+
+#chat-send svg {
+  width: 15px;
+  height: 15px;
+}
+
+#chat-send:hover:not(:disabled),
+#chat-send:focus-visible:not(:disabled) {
+  box-shadow: 0 6px 16px -4px rgba(191, 74, 42, 0.7);
+  transform: translateY(-1px);
+}
+
+#chat-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat-input-warning {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent-text);
+  margin-top: var(--space-xs);
+}
+
+/* -------------------------------------------------------------------------
+   Footer
+   ------------------------------------------------------------------------- */
+footer {
+  padding: var(--space-md);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-faint);
+  border-top: 1px solid var(--color-border);
+}
+
+/* -------------------------------------------------------------------------
+   Data Dashboard page (upload an Excel file, see charts)
+   ------------------------------------------------------------------------- */
+#data-section {
+  padding: var(--space-xl) var(--space-md);
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+}
+
+.data-upload {
+  max-width: 640px;
+  margin: 0 auto var(--space-md);
+  padding: var(--space-lg);
+  background: linear-gradient(155deg, color-mix(in srgb, var(--color-bg-elevated) 92%, var(--color-quaternary)) 0%, var(--color-bg-elevated) 50%);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-quaternary);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px -20px rgba(91, 63, 143, 0.35);
+}
+
+.data-dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-lg) var(--space-md);
+  text-align: center;
+  cursor: pointer;
+  border: 2px dashed var(--color-border);
+  border-radius: 12px;
+  background-color: rgba(10, 11, 16, 0.35);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.data-dropzone:hover,
+.data-dropzone.is-dragover,
+.data-dropzone:focus-within {
+  border-color: var(--color-quaternary-text);
+  background-color: color-mix(in srgb, var(--color-bg) 80%, var(--color-quaternary));
+}
+
+.data-dropzone:has(input:focus-visible) {
+  outline: 2px solid var(--color-quaternary-text);
+  outline-offset: 2px;
+}
+
+.data-dropzone-icon {
+  width: 36px;
+  height: 36px;
+  color: var(--color-quaternary-text);
+}
+
+.data-dropzone-title {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+.data-dropzone-hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.data-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+  border: 1px solid transparent;
+  border-radius: 999px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.data-button:hover:not(:disabled),
+.data-button:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px -8px rgba(191, 74, 42, 0.6);
+}
+
+.data-button:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
+
+.data-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.data-button--ghost {
+  color: var(--color-text);
+  background: transparent;
+  border-color: var(--color-border);
+}
+
+.data-button--ghost:hover:not(:disabled),
+.data-button--ghost:focus-visible {
+  border-color: var(--color-quaternary-text);
+  background-color: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+
+.data-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.data-schema {
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.data-schema summary {
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-quaternary-text);
+}
+
+.data-schema-note {
+  margin: var(--space-xs) 0 var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.data-schema-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.data-schema-table th,
+.data-schema-table td {
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.data-schema-table thead th {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.data-schema-table tbody th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.data-schema-table td {
+  color: var(--color-text-muted);
+}
+
+.data-status {
+  max-width: 640px;
+  margin: 0 auto var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-quaternary);
+  border-radius: 10px;
+}
+
+.data-status[hidden],
+.data-results[hidden] {
+  display: none;
+}
+
+.data-status.is-success {
+  border-left-color: var(--color-secondary);
+}
+
+.data-status.is-warn {
+  border-left-color: var(--color-tertiary);
+}
+
+.data-status.is-error {
+  border-left-color: var(--color-accent);
+}
+
+.data-problems {
+  margin-top: var(--space-xs);
+}
+
+.data-problems summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--color-tertiary-text);
+}
+
+.data-problems ul {
+  margin-top: var(--space-xs);
+  padding-left: 1.25em;
+  list-style: disc;
+  color: var(--color-text-muted);
+}
+
+.data-results {
+  margin-top: var(--space-lg);
+  scroll-margin-top: calc(var(--header-height) + var(--space-sm));
+}
+
+.data-filebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.data-filebar-name {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.data-filebar-meta {
+  margin-top: 2px;
+  font-size: var(--font-size-sm);
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+.data-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  align-items: end;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding: var(--space-md);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+}
+
+.data-filter label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.data-filter select,
+.data-filter input[type="date"] {
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  color-scheme: dark;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.data-filter select:focus-visible,
+.data-filter input[type="date"]:focus-visible {
+  outline: 2px solid var(--color-quaternary-text);
+  outline-offset: 1px;
+}
+
+.data-filter--actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.data-filter-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.data-empty {
+  padding: var(--space-lg);
+  text-align: center;
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+}
+
+.data-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.data-kpi {
+  min-width: 0;
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-accent);
+  border-radius: 14px;
+  box-shadow: 0 12px 28px -18px rgba(0, 0, 0, 0.5);
+}
+
+.data-kpi:nth-child(2n) {
+  border-top-color: var(--color-secondary);
+}
+
+.data-kpi:nth-child(3n) {
+  border-top-color: var(--color-tertiary);
+}
+
+.data-kpi:nth-child(4) {
+  border-top-color: var(--color-quaternary);
+}
+
+.data-kpi-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.data-kpi-value {
+  margin-top: 4px;
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.data-kpi-sub {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.data-module {
+  min-width: 0;
+  padding: var(--space-md);
+  background: linear-gradient(155deg, color-mix(in srgb, var(--color-bg-elevated) 93%, var(--color-secondary)) 0%, var(--color-bg-elevated) 55%);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-accent);
+  border-radius: 16px;
+  box-shadow: 0 12px 28px -18px rgba(0, 0, 0, 0.5);
+}
+
+.data-module--wide {
+  grid-column: 1 / -1;
+}
+
+.data-module--teal {
+  border-top-color: var(--color-secondary);
+}
+
+.data-module--gold {
+  border-top-color: var(--color-tertiary);
+}
+
+.data-module--violet {
+  border-top-color: var(--color-quaternary);
+}
+
+.data-module-title {
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-accent-text);
+}
+
+.data-module--teal .data-module-title {
+  color: var(--color-secondary-text);
+}
+
+.data-module--gold .data-module-title {
+  color: var(--color-tertiary-text);
+}
+
+.data-module--violet .data-module-title {
+  color: var(--color-quaternary-text);
+}
+
+.data-module-note {
+  margin-top: var(--space-sm);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.data-chart {
+  min-height: 230px;
+}
+
+.data-chart svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.data-axis-text {
+  fill: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.data-axis-title {
+  fill: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.data-grid-line {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.data-dot {
+  stroke: var(--color-bg);
+  stroke-width: 1;
+  fill-opacity: 0.8;
+}
+
+.data-dot:hover {
+  fill-opacity: 1;
+  stroke: var(--color-text);
+}
+
+.data-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.data-bar-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 190px) 1fr auto;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.data-bar-label {
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-bar-track {
+  height: 10px;
+  overflow: hidden;
+  background-color: var(--color-bg);
+  border-radius: 999px;
+}
+
+.data-bar-fill {
+  height: 100%;
+  min-width: 3px;
+  border-radius: 999px;
+}
+
+.data-bar-value {
+  min-width: 2.5em;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-align: right;
+}
+
+.data-donut-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.data-donut {
+  flex-shrink: 0;
+  width: 150px;
+  height: 150px;
+}
+
+.data-donut-track {
+  stroke: var(--color-bg);
+}
+
+.data-donut-total {
+  fill: var(--color-text);
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.data-legend {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+}
+
+.data-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-sm);
+}
+
+.data-legend-swatch {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.data-legend-label {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.data-legend-value {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px 12px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.data-table thead th {
+  padding: 0;
+  background-color: var(--color-bg);
+}
+
+.data-table .is-numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-sort-btn {
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: inherit;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+
+.data-sort-btn:hover,
+.data-sort-btn:focus-visible {
+  color: var(--color-text);
+}
+
+.data-table th[aria-sort="ascending"] .data-sort-btn,
+.data-table th[aria-sort="descending"] .data-sort-btn {
+  color: var(--color-secondary-text);
+}
+
+.data-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.data-sev-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 8px;
+  border-radius: 50%;
+}
+
+.data-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.data-pager-text,
+.data-pager-page {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.data-pager-buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.data-pager .data-button {
+  padding: 6px 14px;
+}
+
+/* -------------------------------------------------------------------------
+   Responsive — tablet-width dashboard grid
+   ------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .analyze-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .analyze-module--span-4 {
+    grid-column: span 2;
+  }
+
+  .mitigation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Five nav links no longer fit beside the title on a tablet, so let the
+     header wrap onto two rows here instead of waiting for the phone width. */
+  header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-xs) var(--space-md);
+  }
+
+  header h1 {
+    flex: 1 1 100%;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Responsive — screens under ~600px
+   ------------------------------------------------------------------------- */
+@media (max-width: 600px) {
+  /* Header/nav: drop the fixed height and let title + nav wrap onto
+     their own rows instead of being squeezed into one. */
+  header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-xs) var(--space-md);
+  }
+
+  header h1 {
+    font-size: var(--font-size-base);
+    flex: 1 1 100%;
+  }
+
+  header nav {
+    gap: var(--space-sm);
+  }
+
+  /* Map: 70vh is too tall on a small phone viewport (leaves barely any
+     room for anything else) — shrink it, but keep a usable floor. */
+  #map-container {
+    height: 50vh;
+    min-height: 280px;
+  }
+
+  #contact-section {
+    padding: var(--space-lg) var(--space-sm);
+  }
+
+  #analyze-section {
+    padding: var(--space-lg) var(--space-sm);
+  }
+
+  #mitigation-section {
+    padding: var(--space-lg) var(--space-sm);
+  }
+
+  #data-section {
+    padding: var(--space-lg) var(--space-sm);
+  }
+
+  .data-upload {
+    padding: var(--space-md);
+  }
+
+  .data-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .data-bar-row {
+    grid-template-columns: minmax(80px, 120px) 1fr auto;
+    gap: var(--space-xs);
+  }
+
+  .data-donut {
+    width: 130px;
+    height: 130px;
+  }
+
+  .analyze-form {
+    padding: var(--space-md);
+  }
+
+  .analyze-field-row,
+  .analyze-checkbox-group {
+    grid-template-columns: 1fr;
+  }
+
+  .analyze-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analyze-module--span-2,
+  .analyze-module--span-4 {
+    grid-column: span 1;
+  }
+
+  .analyze-gauge-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .analyze-bar-row {
+    grid-template-columns: minmax(80px, 120px) 1fr auto;
+    gap: var(--space-xs);
+  }
+
+  .about-panel {
+    flex-direction: column;
+    gap: var(--space-lg);
+  }
+
+  .about-photo {
+    flex-basis: auto;
+    height: 200px;
+  }
+
+  .about-bio {
+    max-width: 100%;
+  }
+
+  /* Riot popup: the two side-by-side floating windows don't fit on a
+     small screen, so stack them into one column instead — details
+     window on top, chat window below. Each window keeps its own
+     bounded height and its own independent scroll region
+     (.riot-window-body), exactly like the desktop side-by-side layout;
+     only the arrangement changes, not the scroll mechanics. The outer
+     wrapper can still scroll as a safety net if both windows together
+     are taller than the viewport, so pointer-events is switched to
+     auto here — the desktop-only reason for leaving it as none (so
+     clicks in the gap between two side-by-side windows reach the map
+     behind them) doesn't apply once they're stacked. */
+  #riot-modal-content {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    height: 100vh;
+    padding: var(--space-sm);
+    gap: var(--space-sm);
+    overflow-y: auto;
+    pointer-events: auto;
+  }
+
+  .riot-window {
+    width: 100%;
+    max-height: 48vh;
+  }
+
+  .riot-window-title {
+    font-size: var(--font-size-base);
+  }
+}
+
+
+/* Markdown-rendered AI replies in the chat */
+.chat-message.chat-md {
+  white-space: normal;
+}
+.chat-md p {
+  margin: 0 0 var(--space-xs);
+}
+.chat-md p:last-child,
+.chat-md ol:last-child,
+.chat-md ul:last-child {
+  margin-bottom: 0;
+}
+.chat-md ol,
+.chat-md ul {
+  margin: 0 0 var(--space-xs);
+  padding-left: 1.3em;
+}
+.chat-md li {
+  margin-bottom: 4px;
+}
+.chat-md strong {
+  color: var(--color-text);
+  font-weight: 700;
+}
+.chat-md code {
+  font-size: 0.92em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background-color: var(--color-bg-elevated, rgba(255, 255, 255, 0.08));
+}
+.chat-typing-note {
+  margin-left: 6px;
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-faint);
+}
