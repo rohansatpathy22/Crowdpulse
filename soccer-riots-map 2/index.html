@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CrowdPulse</title>
+
+  <!-- Inline favicon (the site's flame mark) so browsers stop asking for a
+       favicon.ico file that doesn't exist and logging a 404. -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23bf4a2a'/%3E%3Cpath d='M12 2C12 2 6.5 8.5 6.5 13C6.5 16.5 9 19.5 12.5 19.5C16 19.5 18.5 16.5 18.5 13.2C18.5 10.8 17 9 15.7 7.7C16 9.7 14.8 10.8 13.7 10.3C14.7 7.6 13.2 4.2 12 2Z' fill='white' transform='translate(3.6 3.6) scale(0.7)'/%3E%3C/svg%3E" />
+
+  <!-- Leaflet CSS (CDN, v1.9.4 — current stable release) -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+
+  <!-- Space Grotesk (UI labels, nav, module titles) + Fraunces (a
+       characterful serif for big editorial headlines — riot titles,
+       page headings) — two distinct typefaces for genuine hierarchy,
+       rather than one font used everywhere. Body copy keeps the system
+       font stack in style.css for reading comfort at length. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Fraunces:ital,wght@0,500;0,600;0,700;1,500&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Purely decorative — dashed constellation lines connecting a few
+       background dot nodes, fixed behind all content. No content, not
+       announced to assistive tech. -->
+  <svg class="decorative-constellation" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+    <line x1="4%" y1="14%" x2="8%" y2="40%" stroke="var(--color-accent-text)" stroke-width="1" stroke-dasharray="4 6" />
+    <line x1="8%" y1="40%" x2="3%" y2="58%" stroke="var(--color-tertiary-text)" stroke-width="1" stroke-dasharray="4 6" />
+    <line x1="96%" y1="24%" x2="92%" y2="6%" stroke="var(--color-secondary-text)" stroke-width="1" stroke-dasharray="4 6" />
+    <line x1="96%" y1="24%" x2="97%" y2="68%" stroke="var(--color-secondary-text)" stroke-width="1" stroke-dasharray="4 6" />
+  </svg>
+
+  <header>
+    <div id="site-brand">
+      <span id="site-logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+          <path d="M12 2C12 2 6.5 8.5 6.5 13C6.5 16.5 9 19.5 12.5 19.5C16 19.5 18.5 16.5 18.5 13.2C18.5 10.8 17 9 15.7 7.7C16 9.7 14.8 10.8 13.7 10.3C14.7 7.6 13.2 4.2 12 2Z" fill="currentColor"/>
+        </svg>
+      </span>
+      <h1>CrowdPulse</h1>
+    </div>
+    <nav>
+      <a href="#map" id="nav-link-map" class="nav-link">Map</a>
+      <a href="#analyze" id="nav-link-analyze" class="nav-link">Analyze Match</a>
+      <a href="#mitigation" id="nav-link-mitigation" class="nav-link">Mitigation Factors</a>
+      <a href="#data" id="nav-link-data" class="nav-link">Data Dashboard</a>
+      <a href="#contact" id="nav-link-contact" class="nav-link">Contact</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Map section. class="app-page" + JS in script.js toggle which of
+         #map-section / #contact-section is visible — this is a single
+         HTML file with two client-side "pages", not two separate files. -->
+    <section id="map-section" class="app-page">
+      <!--
+        #map-container is where Leaflet renders the map.
+        Leaflet requires this element to have an explicit height set in CSS
+        (a map div with no height will render blank). Height to be added
+        in css/style.css in a later step.
+
+        The map itself initializes immediately (it doesn't depend on
+        riots.json), but markers can't be added until that fetch resolves,
+        so #map-loading overlays the map while it's in flight, and
+        #map-error replaces it if the fetch fails.
+      -->
+      <div id="map-container-wrapper">
+        <div id="map-container"></div>
+
+        <div id="map-loading" role="status" aria-live="polite">
+          <span class="map-loading-spinner" aria-hidden="true"></span>
+          Loading riot data...
+        </div>
+
+        <div id="map-error" role="alert" hidden></div>
+      </div>
+
+      <!--
+        Known limitation: Leaflet's markers are plain DOM/canvas elements,
+        not natively keyboard-focusable or announced meaningfully by
+        screen readers. Rather than claim the map itself is fully
+        accessible, this list gives keyboard and screen-reader users a
+        non-map way to reach every riot's detail popup. Populated by
+        script.js once data/riots.json loads.
+      -->
+      <section id="riot-list-section" aria-labelledby="riot-list-heading">
+        <h2 id="riot-list-heading">Browse riots by list</h2>
+        <p class="riot-list-note">
+          The map above uses visual markers that aren't fully accessible to
+          screen readers. Use this list to browse and open any event instead.
+        </p>
+        <ul id="riot-list"></ul>
+      </section>
+    </section>
+
+    <!-- Riot detail popup: two separate floating windows (details left,
+         chat right), with the map visible in the gap between them. -->
+    <div id="riot-modal" class="hidden">
+      <!-- Backdrop — transparent (the map stays visible through it) but
+           still catches outside clicks to close the popup. -->
+      <div id="riot-modal-backdrop"></div>
+
+      <!--
+        Non-visual positioning wrapper. This is the single ARIA dialog
+        (role="dialog") even though it renders as two visually separate
+        windows — its two children are the actual floating cards,
+        positioned at opposite edges by the flex layout in style.css.
+      -->
+      <div id="riot-modal-content" role="dialog" aria-modal="true" aria-labelledby="riot-title" tabindex="-1">
+
+        <!-- Left window: riot details -->
+        <div id="riot-details-panel" class="riot-window">
+          <div class="riot-window-header">
+            <div class="riot-window-icon" id="riot-details-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                <path d="M12 2C12 2 6.5 8.5 6.5 13C6.5 16.5 9 19.5 12.5 19.5C16 19.5 18.5 16.5 18.5 13.2C18.5 10.8 17 9 15.7 7.7C16 9.7 14.8 10.8 13.7 10.3C14.7 7.6 13.2 4.2 12 2Z" fill="currentColor"/>
+              </svg>
+            </div>
+
+            <div class="riot-window-header-text">
+              <!-- Title area — `title` is the only field name we can rely on right now -->
+              <h2 id="riot-title" class="riot-window-title"></h2>
+              <p id="riot-details-subtitle" class="riot-window-subtitle"></p>
+            </div>
+
+            <button id="riot-modal-close" class="riot-window-close" aria-label="Close">&times;</button>
+          </div>
+
+          <div class="riot-window-body">
+            <!-- Gemini-fetched summary/description/causes/impact text is injected here later -->
+            <div id="riot-info-content">Loading information...</div>
+
+            <!-- Gemini-fetched source links are injected here later -->
+            <div id="riot-sources"></div>
+          </div>
+        </div>
+
+        <!-- Right window: AI chat -->
+        <div id="riot-chat-panel" class="riot-window">
+          <div class="riot-window-header">
+            <div class="riot-window-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                <path d="M12 2L14.2 9.2L21 12L14.2 14.8L12 22L9.8 14.8L3 12L9.8 9.2L12 2Z" fill="currentColor"/>
+              </svg>
+            </div>
+
+            <div class="riot-window-header-text">
+              <p class="riot-window-title">Ask AI</p>
+              <p class="riot-window-subtitle">
+                <span class="riot-chat-status-dot" aria-hidden="true"></span>
+                About this riot
+              </p>
+            </div>
+
+            <button id="riot-chat-close" class="riot-window-close" aria-label="Close">&times;</button>
+          </div>
+
+          <div id="riot-chat-container" class="riot-window-body">
+            <div id="chat-messages"></div>
+
+            <div id="chat-input-row">
+              <label for="chat-input" class="visually-hidden">Ask a question about this riot</label>
+              <input
+                type="text"
+                id="chat-input"
+                placeholder="Ask anything about this riot..."
+              />
+              <button type="button" id="chat-send" aria-label="Send message">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+                  <path d="M3 11L21 3L13 21L11 13L3 11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="none"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analyze Match page. Hidden by default (see .app-page in
+         style.css); script.js shows this when the "Analyze Match" nav
+         link is clicked. Gemini uses the questionnaire answers plus
+         the already-loaded historical riot data to estimate riot
+         likelihood/severity for a hypothetical match. -->
+    <section id="analyze-section" class="app-page">
+      <div class="analyze-intro">
+        <div class="riot-window-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+            <path d="M12 2C12 2 6.5 8.5 6.5 13C6.5 16.5 9 19.5 12.5 19.5C16 19.5 18.5 16.5 18.5 13.2C18.5 10.8 17 9 15.7 7.7C16 9.7 14.8 10.8 13.7 10.3C14.7 7.6 13.2 4.2 12 2Z" fill="currentColor"/>
+          </svg>
+        </div>
+        <div>
+          <h2>Analyze Match</h2>
+          <p class="analyze-subtitle">AI Riot Risk Estimator</p>
+          <p class="analyze-description">
+            Fill out a few details about an upcoming or hypothetical match, and
+            Gemini will estimate how likely it is that a riot happens and how bad
+            it could get. It looks at the factors you enter plus patterns from the
+            real riots on the Map page.
+          </p>
+        </div>
+      </div>
+
+      <form id="analyze-form" class="analyze-form" novalidate>
+        <fieldset class="analyze-fieldset">
+          <legend>Match details</legend>
+
+          <div class="analyze-field">
+            <label for="analyze-sport">Sport</label>
+            <select id="analyze-sport" required>
+              <option value="Soccer">Soccer</option>
+              <option value="Basketball">Basketball</option>
+              <option value="Ice Hockey">Ice Hockey</option>
+              <option value="Baseball">Baseball</option>
+              <option value="Cricket">Cricket</option>
+              <option value="American Football">American Football</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="analyze-field">
+            <label for="analyze-competition">Competition / tournament</label>
+            <input type="text" id="analyze-competition" required placeholder="e.g. Premier League, Copa Libertadores Final" />
+          </div>
+
+          <div class="analyze-field-row">
+            <div class="analyze-field">
+              <label for="analyze-home-team">Home team</label>
+              <input type="text" id="analyze-home-team" required placeholder="e.g. River Plate" />
+            </div>
+            <div class="analyze-field">
+              <label for="analyze-away-team">Away team</label>
+              <input type="text" id="analyze-away-team" required placeholder="e.g. Boca Juniors" />
+            </div>
+          </div>
+
+          <div class="analyze-field">
+            <label for="analyze-location">Match location (city, country)</label>
+            <input type="text" id="analyze-location" required placeholder="e.g. Buenos Aires, Argentina" />
+          </div>
+
+          <div class="analyze-field">
+            <label for="analyze-stadium">Stadium <span class="analyze-optional">(optional)</span></label>
+            <input type="text" id="analyze-stadium" placeholder="e.g. Estadio Monumental" />
+          </div>
+
+          <div class="analyze-field-row">
+            <div class="analyze-field">
+              <label for="analyze-importance">Match importance</label>
+              <select id="analyze-importance" required>
+                <option value="Regular Season">Regular Season</option>
+                <option value="Rivalry">Rivalry</option>
+                <option value="Playoffs">Playoffs / Knockout</option>
+                <option value="Final">Final</option>
+                <option value="Qualifier">Qualifier</option>
+              </select>
+            </div>
+            <div class="analyze-field">
+              <label for="analyze-rivalry">Rivalry level</label>
+              <select id="analyze-rivalry" required>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="analyze-fieldset">
+          <legend>Known risk factors</legend>
+          <div class="analyze-checkbox-group">
+            <label class="analyze-checkbox">
+              <input type="checkbox" id="analyze-risk-organized" />
+              Organized/ultras fan groups present
+            </label>
+            <label class="analyze-checkbox">
+              <input type="checkbox" id="analyze-risk-alcohol" />
+              Alcohol sold at the venue
+            </label>
+            <label class="analyze-checkbox">
+              <input type="checkbox" id="analyze-risk-history" />
+              History of incidents between these teams
+            </label>
+            <label class="analyze-checkbox">
+              <input type="checkbox" id="analyze-risk-tension" />
+              Elevated political or social tension
+            </label>
+            <label class="analyze-checkbox">
+              <input type="checkbox" id="analyze-risk-stakes" />
+              Elimination / must-win stakes
+            </label>
+            <label class="analyze-checkbox">
+              <input type="checkbox" id="analyze-risk-capacity" />
+              Stadium expected to be near or over capacity
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="analyze-field">
+          <label for="analyze-context">Additional or intangible context <span class="analyze-optional">(optional)</span></label>
+          <textarea
+            id="analyze-context"
+            rows="3"
+            placeholder="e.g. a star player may be transferring to the rival club, a recent controversial refereeing decision, the anniversary of a past incident..."
+          ></textarea>
+        </div>
+
+        <p id="analyze-form-warning" class="analyze-form-warning" role="alert" hidden></p>
+
+        <button type="submit" id="analyze-submit">Analyze Match</button>
+      </form>
+
+      <div id="analyze-result" class="analyze-result" hidden></div>
+    </section>
+
+    <!-- Mitigation Factors page. Static, hand-written reference
+         content (not AI-generated) — general crowd-safety guidance
+         applicable to any sport, competition, or venue worldwide, not
+         tied to any specific incident. -->
+    <section id="mitigation-section" class="app-page">
+      <div class="analyze-intro">
+        <div class="riot-window-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+            <path d="M12 3L19 6V11C19 15.5 16 19 12 21C8 19 5 15.5 5 11V6L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <h2>Mitigation Factors</h2>
+          <p class="analyze-subtitle">Crowd Safety Reference</p>
+          <p class="analyze-description">
+            Some general tips on preventing a riot from breaking out at a sporting
+            event, and what to do if one actually happens. This isn't tied to any
+            specific team or venue, just stuff that should apply pretty much anywhere.
+          </p>
+        </div>
+      </div>
+
+      <div class="mitigation-grid">
+        <div class="mitigation-module mitigation-module--prevent">
+          <div class="mitigation-module-header">
+            <span class="mitigation-module-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <div>
+              <h3>Before a Riot</h3>
+              <p class="mitigation-module-subtitle">Prevention</p>
+            </div>
+          </div>
+
+          <div class="mitigation-category">
+            <p class="mitigation-category-title">Venue &amp; Security Planning</p>
+            <ul class="mitigation-list">
+              <li>Conduct a risk assessment for every fixture based on rivalry history, match stakes, and expected attendance</li>
+              <li>Enforce ticketed capacity strictly; never allow attendance to exceed a venue's certified safe limit</li>
+              <li>Physically segregate opposing supporter sections with adequate barriers and neutral buffer zones</li>
+              <li>Maintain multiple, clearly marked, unobstructed emergency exits and evacuation routes</li>
+              <li>Deploy trained stewards and police at a ratio appropriate to the match's assessed risk level</li>
+            </ul>
+          </div>
+
+          <div class="mitigation-category">
+            <p class="mitigation-category-title">Fan &amp; Ticketing Controls</p>
+            <ul class="mitigation-list">
+              <li>Use identity-verified ticketing to keep individuals with prior stadium bans out of the venue</li>
+              <li>Restrict or suspend alcohol sales in the hours immediately before kickoff and in high-risk sections</li>
+              <li>Coordinate visiting supporters' travel and arrival timing with local police to avoid chance confrontations</li>
+              <li>Maintain dialogue with organized supporter groups through dedicated fan liaison officers</li>
+            </ul>
+          </div>
+
+          <div class="mitigation-category">
+            <p class="mitigation-category-title">Intelligence &amp; Coordination</p>
+            <ul class="mitigation-list">
+              <li>Share intelligence between clubs, leagues, and police on rivalry history and known risk indicators</li>
+              <li>Hold joint pre-match briefings with security, stewarding, and medical teams</li>
+              <li>Monitor public channels for signs of planned confrontations or unusually high tension beforehand</li>
+            </ul>
+          </div>
+
+          <div class="mitigation-category">
+            <p class="mitigation-category-title">Facility Design</p>
+            <ul class="mitigation-list">
+              <li>Ensure adequate lighting, signage, and CCTV coverage throughout the venue and surrounding areas</li>
+              <li>Design entry and exit points to prevent bottlenecks that can turn into crowd crushes</li>
+              <li>Restrict access to items that are easily used as projectiles</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="mitigation-module mitigation-module--response">
+          <div class="mitigation-module-header">
+            <span class="mitigation-module-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                <path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M12 3L19 6V11C19 15.5 16 19 12 21C8 19 5 15.5 5 11V6L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <div>
+              <h3>If a Riot Occurs</h3>
+              <p class="mitigation-module-subtitle">Response</p>
+            </div>
+          </div>
+
+          <div class="mitigation-category">
+            <p class="mitigation-category-title">Immediate Crowd Control</p>
+            <ul class="mitigation-list">
+              <li>Prioritize de-escalation and a proportionate response over aggressive dispersal tactics</li>
+              <li>Avoid firing tear gas or similar agents into enclosed or narrow spaces where a stampede could follow</li>
+              <li>Open emergency exits immediately and direct crowds calmly and clearly toward them</li>
+            </ul>
+          </div>
+
+          <div class="mitigation-category">
+            <p class="mitigation-category-title">Communication</p>
+            <ul class="mitigation-list">
+              <li>Use the stadium PA system and video screens to issue clear, calm, repeated instructions</li>
+              <li>Establish a single incident command structure so police, stewards, and medical teams aren't giving conflicting directions</li>
+              <li>Avoid alarmist or contradictory announcements, which can trigger panic on their own</li>
+            </ul>
+          </div>
+
+          <div class="mitigation-category">
+            <p class="mitigation-category-title">Medical &amp; Safety Response</p>
+            <ul class="mitigation-list">
+              <li>Pre-position medical teams and ambulances to reach any part of the venue quickly</li>
+              <li>Establish triage points at a safe distance from the immediate danger zone</li>
+              <li>Account for all players, staff, and officials before declaring an evacuation complete</li>
+            </ul>
+          </div>
+
+          <div class="mitigation-category">
+            <p class="mitigation-category-title">Post-Incident Actions</p>
+            <ul class="mitigation-list">
+              <li>Preserve CCTV footage and witness accounts for an independent investigation</li>
+              <li>Commission a transparent post-incident review that identifies root causes, not just individuals to blame</li>
+              <li>Communicate openly with the public and with affected families</li>
+              <li>Follow through on the structural or policy changes a review recommends, not only short-term sanctions</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Data Dashboard page. Upload an Excel file with 8 columns and it gets
+         charted. No AI is involved and the file never leaves the browser.
+         All of the logic lives in js/dashboard.js. -->
+    <section id="data-section" class="app-page">
+      <div class="analyze-intro">
+        <div class="riot-window-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+            <path d="M4 20V11M10 20V4M16 20v-6M2 20h20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <h2>Data Dashboard</h2>
+          <p class="analyze-subtitle">Upload &amp; Visualize</p>
+          <p class="analyze-description">
+            Upload an Excel file with 8 columns of incident data and this page
+            turns it into stats and charts. There's no AI involved here, it's
+            just your numbers.
+          </p>
+        </div>
+      </div>
+
+      <p class="analyze-disclaimer">
+        Your file never leaves your browser. It gets read and charted right on
+        this page and nothing is sent to a server. The demo file is made up, so
+        don't treat it as real incident data.
+      </p>
+
+      <div class="data-upload">
+        <label class="data-dropzone" id="data-dropzone" for="data-file-input">
+          <svg class="data-dropzone-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+            <path d="M12 16V4M12 4l-4 4M12 4l4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="data-dropzone-title">Drag and drop an Excel file here</span>
+          <span class="data-dropzone-hint">or click to choose one (.xlsx, .xls or .csv, up to 5 MB)</span>
+          <input type="file" id="data-file-input" class="visually-hidden" accept=".xlsx,.xls,.csv" />
+        </label>
+
+        <div class="data-upload-actions">
+          <a class="data-button data-button--ghost" href="data/demo-incidents.xlsx" download>Download demo file</a>
+          <button type="button" class="data-button" id="data-load-demo">Load demo data</button>
+        </div>
+
+        <details class="data-schema">
+          <summary>The 8 columns your file needs</summary>
+          <p class="data-schema-note">
+            Put these in the first row of the sheet. The order doesn't matter,
+            and neither do capital letters or spaces in the names.
+          </p>
+          <div class="data-table-wrap">
+            <table class="data-schema-table">
+              <thead>
+                <tr><th scope="col">Column</th><th scope="col">What goes in it</th><th scope="col">Example</th></tr>
+              </thead>
+              <tbody id="data-schema-body"></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+
+      <div id="data-status" class="data-status" role="status" aria-live="polite" hidden></div>
+
+      <div id="data-results" class="data-results" hidden></div>
+    </section>
+
+    <!-- About/Contact page. Hidden by default (see .app-page in
+         style.css); script.js shows this and hides #map-section when
+         the "Contact" nav link is clicked. -->
+    <section id="contact-section" class="app-page">
+      <div class="about-panel">
+        <!-- Profile photo. Falls back to the gradient/glow panel below
+             (via onerror hiding the broken image) if assets/profile.jpg
+             hasn't been added yet. -->
+        <div class="about-photo">
+          <img
+            src="assets/profile.jpg"
+            alt="Rohan Satpathy"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          />
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false" style="display: none;" aria-hidden="true">
+            <path d="M12 2C12 2 6.5 8.5 6.5 13C6.5 16.5 9 19.5 12.5 19.5C16 19.5 18.5 16.5 18.5 13.2C18.5 10.8 17 9 15.7 7.7C16 9.7 14.8 10.8 13.7 10.3C14.7 7.6 13.2 4.2 12 2Z" fill="currentColor"/>
+          </svg>
+        </div>
+
+        <div class="about-content">
+          <h2>About Me</h2>
+          <p class="about-subtitle">Rohan Satpathy, Developer</p>
+          <p class="about-bio">
+            CrowdPulse is my project for looking at how crowd violence at
+            sporting events actually happens. It maps 20 real riots, uses AI
+            to summarize each one and answer questions about it, and can size
+            up the risk for an upcoming match. There's also a data dashboard
+            where you can upload your own spreadsheet and see the numbers as
+            charts. It's built with plain HTML, CSS and JavaScript, with
+            Leaflet and OpenStreetMap for the map and the Gemini API behind
+            the AI parts.
+          </p>
+
+          <ul class="social-icons">
+            <li>
+              <a href="https://github.com/rohansatpathy" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+                  <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-1.04-.01-1.89-2.78.62-3.37-1.19-3.37-1.19-.46-1.2-1.11-1.52-1.11-1.52-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.31.1-2.73 0 0 .84-.28 2.75 1.05a9.28 9.28 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.42.2 2.47.1 2.73.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.8-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z"/>
+                </svg>
+              </a>
+            </li>
+            <li>
+              <a href="mailto:rohansatpathy09@gmail.com" aria-label="Email">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                  <rect x="3" y="5" width="18" height="14" rx="2"/>
+                  <path d="M3 7l9 6 9-6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.linkedin.com/in/rohan-satpathy-9107a1347" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+                  <path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.03-1.85-3.03-1.85 0-2.14 1.45-2.14 2.94v5.66H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29ZM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12ZM7.12 20.45H3.56V9h3.56v11.45Z"/>
+                </svg>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.instagram.com/rohannsatpathy/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                  <rect x="3" y="3" width="18" height="18" rx="5"/>
+                  <circle cx="12" cy="12" r="4"/>
+                  <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+                </svg>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Built by Rohan Satpathy</p>
+  </footer>
+
+  <!-- Leaflet JS (CDN, v1.9.4 — current stable release) -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <!-- script.js depends on the Leaflet global (L), so it's loaded after leaflet.js, at the end of body -->
+  <script src="js/script.js"></script>
+
+  <!-- The Data Dashboard page. Self-contained, and only downloads its spreadsheet
+       reader when someone actually uploads a file. -->
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
